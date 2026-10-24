@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golden Meadow</title>
+<style>
+:root{--bg:#f4dece;color-scheme:light}
+html,body{height:100%;margin:0}
+body{background:var(--bg);overflow:hidden;display:grid;place-items:center}
+#c,#ref{grid-area:1/1;display:block}
+#c{opacity:0;transition:opacity .9s}
+#c.ready{opacity:1}
+#ref{pointer-events:none}
+@media (prefers-reduced-motion: reduce){#c{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="c" width="941" height="1672" aria-label="Sunrise meadow with rolling hills, round topiary trees and glowing pink flowers"></canvas>
+<img id="ref" src="reference.png" alt="" hidden>
+<pre id="dbg" hidden style="position:fixed;left:8px;top:8px;right:8px;max-height:70%;overflow:auto;background:#fff;color:#900;font:11px/1.3 monospace;white-space:pre-wrap;z-index:9;margin:0;padding:8px"></pre>
+<script>
+(function(){var out=[];function show(){var el=document.getElementById('dbg');if(el&&location.hash.indexOf('debug')>-1){el.hidden=false;el.textContent=out.join(String.fromCharCode(10,10))}}
+function push(k,a){out.push(k+': '+[].map.call(a,function(x){return x&&x.stack?x.stack:String(x)}).join(' ').slice(0,1200));show()}
+['error','warn'].forEach(function(k){var o=console[k];console[k]=function(){push(k,arguments);o.apply(console,arguments)}});
+addEventListener('error',function(e){push('onerror',[e.message+' @'+e.filename+':'+e.lineno])});
+addEventListener('unhandledrejection',function(e){push('reject',[e.reason])});})();
+</script>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/",
+  "postprocessing":"https://cdn.jsdelivr.net/npm/postprocessing@6.31.2/build/postprocessing.esm.js",
+  "realism-effects":"https://cdn.jsdelivr.net/npm/realism-effects@1.1.2/dist/index.js"
+}}
+</script>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
