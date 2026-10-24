@@ -358,6 +358,10 @@ const PLACES = {
     { c: [18, 222], w: 160, d: 26 },
     { c: [948, 232], w: 150, d: 26 },
   ],
+  // the egg stands in the middle of the sunlit patch on the crest: centre x, height in px; its base sits on the turf
+  egg: [
+    { cx: 470, h: 370, d: 7.05 },
+  ],
 };
 
 const trunkMat = new THREE.MeshStandardMaterial({ color: '#6b3a36', roughness: 0.9, emissive: '#3a1a18', emissiveIntensity: 0.3 });
@@ -400,6 +404,49 @@ function fallbackCloud() {
   const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color: '#fff4ee', emissive: '#ffd8c6', emissiveIntensity: 0.6 });
   for (const [x, y, z, r] of [[0, 0, 0, .55], [.5, -.1, .1, .42], [-.5, -.12, .05, .4], [.2, .25, -.1, .4], [-.25, .2, .1, .35]]) { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 16), m); s.position.set(x, y, z); g.add(s); }
   return g;
+}
+
+// Stand-in egg (used when models/egg.glb is missing): a lathed egg with faint growth rings,
+// lavender-blue at the base fading to a pale, sunlit crown like the reference clip.
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function fallbackEgg() {
+  const pts = [], N = 96;
+  for (let i = 0; i <= N; i++) {
+    const t = (i / N) * Math.PI, y = (1 - Math.cos(t)) / 2;
+    const ring = 1 + 0.006 * Math.sin(y * Math.PI * 26) * smooth(0.15, 0.6, y);
+    pts.push(new THREE.Vector2(0.4 * Math.sin(t) * (1 + 0.12 * Math.cos(t)) * ring, y));
+  }
+  const g = new THREE.LatheGeometry(pts, 96);
+  const ramp = [[0, C('#7584ee')], [0.45, C('#a9adf2')], [1, C('#f7eff0')]], col = new THREE.Color();
+  const p = g.attributes.position, cols = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i), k = ramp.findIndex(([s]) => s >= y), [s0, c0] = ramp[Math.max(0, k - 1)], [s1, c1] = ramp[Math.max(0, k)];
+    col.copy(c0).lerp(c1, s1 > s0 ? (y - s0) / (s1 - s0) : 0).toArray(cols, i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, emissive: '#d8d4ff', emissiveIntensity: 0.1 });
+  const root = new THREE.Group(); root.add(new THREE.Mesh(g, m));
+  return root;
+}
+
+// The egg keeps its own materials, with the scene's soft shading (cool underside, warm backlit rim).
+function placeEgg(root) {
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const m = o.material;
+    m.roughness = Math.max(m.roughness ?? 1, 0.7); m.metalness = 0;
+    if (m.map) { m.emissive = new THREE.Color(0xffffff); m.emissiveMap = m.map; m.emissiveIntensity = 0.12; }
+    stylize(m, { sat: 1, under: 0.8, underCol: '#c9ccff', rim: '#ffe0b0', rimK: 1, glow: 0.08 });
+  });
+  PLACES.egg.forEach((p) => {
+    const { outer, inner, b } = fitByBox(root, 0, 0);
+    const c = b.getCenter(new V3());
+    inner.position.set(-c.x, -b.min.y, -c.z);
+    const s = wl(p.h, p.d) / (b.max.y - b.min.y), x = wx(p.cx, p.d);
+    outer.scale.setScalar(s);
+    outer.position.set(x, groundY(x, p.d) - 0.02, -p.d);   // sunk a touch so the grass tufts wrap its base
+    scene.add(outer);
+  });
 }
 
 const FOLIAGE = { tree: { sat: 0.6, base: '#5e6b55', tip: '#e2e5c0' }, bush: { sat: 0.7, base: '#8d9e72', tip: '#f4f6d2' } };
@@ -694,12 +741,13 @@ addEventListener('resize', fit); addEventListener('hashchange', fit); fit();
 const MODELS_DIR = window.MODELS_DIR ?? './models/';
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const load = (k) => (window.loadModel ? window.loadModel(k, loader) : loader.loadAsync(MODELS_DIR + k + '.glb'));
-const kinds = ['tree', 'bush', 'flower', 'cloud'];
+const kinds = ['tree', 'bush', 'flower', 'cloud', 'egg'];
 Promise.allSettled(kinds.map(load)).then((res) => {
   res.forEach((r, i) => {
     const k = kinds[i], ok = r.status === 'fulfilled';
     if (!ok) console.warn(`models/${k}.glb not loaded, using built-in shape`, r.reason);
-    if (k === 'tree' && ok) placeTrees(r.value.scene);
+    if (k === 'egg') placeEgg(ok ? r.value.scene : fallbackEgg());
+    else if (k === 'tree' && ok) placeTrees(r.value.scene);
     else if (k === 'tree' || k === 'bush') placeFoliage(k, ok ? extract(r.value.scene) : fallbackGeo(k));
     else placeProps(k, ok ? prepModel(k, r.value.scene) : k === 'flower' ? fallbackFlower() : fallbackCloud());
   });

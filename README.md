@@ -51,14 +51,15 @@ Notes on how it is wired, in `main.js`:
 | `index.html` | Page shell |
 | `reference.png` | Your reference image, used only by the comparison modes |
 | `main.js` | The scene: sky, fur grass and hills, realism-effects post-processing, model loading |
-| `models/*.glb` | Optimized Tripo3D models the scene loads (tree, bush, flower, cloud) |
-| `*.glb` in this folder | Your original Tripo3D exports (untouched). Trees use `stylized_tree_3d_model.glb`, bushes `stylized shrub 3d model.glb` (with the fur layer), flowers `pink_fuzzy_flower_3d_model_1.glb`, clouds `cloud_3d_model.glb` |
+| `models/*.glb` | Optimized Tripo3D models the scene loads (tree, bush, flower, cloud, egg) |
+| `*.glb` in this folder | Your original Tripo3D exports (untouched). Trees use `stylized_tree_3d_model.glb`, bushes `stylized shrub 3d model.glb` (with the fur layer), flowers `pink_fuzzy_flower_3d_model_1.glb`, clouds `cloud_3d_model.glb`, the egg `egg_3d_model.glb` |
 | `optimize-models.sh` | Rebuilds `models/` from the originals |
 | `tripo-generate.mjs` | Generates new models through the Tripo3D API |
 
 ## Swapping models
 
 - Replace an original export in this folder and run `./optimize-models.sh`, or save an already-optimized file as `models/<name>.glb`.
+- The egg in the middle of the sunlit patch loads from `models/egg.glb`: save your egg export as `egg_3d_model.glb` here and run `./optimize-models.sh`. Until that file exists, a built-in lavender egg stands in.
 
 The raw Tripo exports are about 1 million triangles each, and the scene shows 13 copies. Always run them through `optimize-models.sh` (it cuts them to 50–100k triangles and 1024px WebP textures) or the page will stutter.
 
@@ -66,7 +67,7 @@ The raw Tripo exports are about 1 million triangles each, and the scene shows 13
 
 In `main.js`:
 
-- `PLACES` positions every tree, bush, flower and cloud by the pixel it covers in the reference plus its distance from the camera.
+- `PLACES` positions every tree, bush, flower, cloud and the egg by the pixel it covers in the reference plus its distance from the camera.
 - `HILLS` and `FAR` trace each hill's ridge line in reference pixels; the meshes are solved so their outlines land on those lines.
 - `F`, `HZ` and `EYE` are the camera's focal length (px), horizon row (px) and height.
 - `stylize()` gives trees, bushes and clouds the reference's soft look (sage tone, darker underside, warm backlit rim); each call's options set the tint and rim strength.

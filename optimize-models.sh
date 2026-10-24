@@ -17,4 +17,5 @@ opt "stylized_tree_3d_model.glb"       tree   1 2048
 opt "stylized shrub 3d model.glb"      bush   0.08 1024
 opt "pink_fuzzy_flower_3d_model_1.glb" flower 1 2048
 opt "cloud_3d_model.glb"               cloud  1 1024
+opt "egg_3d_model.glb"                 egg    1 2048
 echo "Done. Optimized models are in ./models"
